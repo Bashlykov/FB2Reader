@@ -9,7 +9,6 @@ import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
-import android.support.v4.widget.TextViewCompat;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Base64;
 import android.view.LayoutInflater;
@@ -24,24 +23,23 @@ import java.io.InputStream;
 public class PageFragment extends Fragment {
     static final String ARGUMENT_PAGE_NUMBER = "arg_page_number";
     static final String ARGUMENT_PAGE_TEXT = "arg_page_text";
-    static final String ARGUMENT_PAGE_IMAGE = "arg_page_image";
+    static final String ARGUMENT_PAGE_TYPE = "arg_page_type";
     static final char IMAGE = 'I';
     static final char TEXT = 'T';
     int pageNumber;
     int backColor;
     CharSequence pageText;
     TextView tvPage;
-    static ViewPager pager;
+    ViewPager pager;
     static String fontPath;
     static float sizeFont;
     static float lineSpace;
     static boolean selectedSizeFont = false;
     static boolean selectedLineSpace = false;
-    //byte[] imageBytes;
-    static char typeData = TEXT;
-    float defaultSizeFont = 12.0f;
+    char typeData = TEXT;
+    float defaultSizeFont = 14.0f;
 
-    public void setFontCurrentPage(String font){
+    public void setFontPage(String font){
         if (font != null) {
             try {
                 tvPage.setTypeface(Typeface.createFromAsset(
@@ -66,13 +64,13 @@ public class PageFragment extends Fragment {
         selectedLineSpace = true;
     }
 
-    static PageFragment newInstance(int page, CharSequence text, char _typeData) {
+    static PageFragment newInstance(int page, CharSequence text, char typeData) {
         PageFragment pageFragment = new PageFragment();
         Bundle arguments = new Bundle();
         arguments.putInt(ARGUMENT_PAGE_NUMBER, page);
         arguments.putCharSequence(ARGUMENT_PAGE_TEXT, text);
+        arguments.putChar(ARGUMENT_PAGE_TYPE, typeData);
         pageFragment.setArguments(arguments);
-        typeData = _typeData;
         return pageFragment;
     }
 
@@ -81,6 +79,7 @@ public class PageFragment extends Fragment {
         super.onCreate(savedInstanceState);
         pageNumber = getArguments().getInt(ARGUMENT_PAGE_NUMBER);
         pageText = getArguments().getCharSequence(ARGUMENT_PAGE_TEXT);
+        typeData = getArguments().getChar(ARGUMENT_PAGE_TYPE);
         backColor = Color.argb(255, 245, 245, 220);
     }
 
@@ -91,7 +90,6 @@ public class PageFragment extends Fragment {
         tvPage = view.findViewById(R.id.tvPage);
         pager = getActivity().findViewById(R.id.pager);
 
-        //tvPage.setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM);
         //TextViewCompat.setAutoSizeTextTypeWithDefaults(tvPage, TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM);
 
         tvPage.setBackgroundColor(backColor);
@@ -103,8 +101,8 @@ public class PageFragment extends Fragment {
            Drawable topImage = new BitmapDrawable(getResources(), bitmap);
            tvPage.setCompoundDrawablesWithIntrinsicBounds(null, topImage, null, null);
        } else {
-
            tvPage.setText(pageText);
+
            if (fontPath != null)
                tvPage.setTypeface(Typeface.createFromAsset(
                        getActivity().getAssets(), fontPath));
