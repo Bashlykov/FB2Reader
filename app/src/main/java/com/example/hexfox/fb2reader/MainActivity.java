@@ -79,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int MENU_ITEM_3 = 3;
 
     int numPageBookOpen = -1;
-    int checkedItemFont = 3;
+    int checkedItemFont = 0;
     int checkedItemSizeFont = 1;
     int checkedItemLineSpace = 0;
 
@@ -597,22 +597,18 @@ public class MainActivity extends AppCompatActivity {
                                     //Log.d(TAG, valImage);
                                 }
                             break;
+                        /*
                         case "book-title":
-
                             break;
                         case "subtitle":
-
                             break;
                         case "first-name":
-
                             break;
                         case "middle-name":
-
                             break;
                         case "last-name":
-
                             break;
-
+                        */
                     }
                     break;
                 case XmlPullParser.END_TAG:
@@ -647,8 +643,8 @@ public class MainActivity extends AppCompatActivity {
                     switch (nameTag) {
                         case "p":
                             if(parentTag.equals("title")) {
-                                tagOpen = "<h4>";
-                                tagClose = "</4>";
+                                tagOpen = "<br /><h2>";
+                                tagClose = "</2>";
                             }else if(parentTag.equals("annotation")) {
                                 tagOpen = "<p align=\"center\"><i>";
                                 tagClose = "</i></p>";
@@ -662,7 +658,7 @@ public class MainActivity extends AppCompatActivity {
                             break;
                         case "v":
                             if(parentTag.equals("stanza")){
-                                tagOpen = "<i align=\"center\">";
+                                tagOpen = "<br /><i align=\"center\">";
                                 tagClose = "</i>";
                             }
                             break;
@@ -675,6 +671,13 @@ public class MainActivity extends AppCompatActivity {
                                 tagClose = "</em>";
                             }
                             break;
+                        case "subtitle":
+                            tagOpen = "<br /><h4>";
+                            tagClose = "</4>";
+                            break;
+                        case "text-author":
+                            tagOpen = "<p align=\"right\"><i>";
+                            tagClose = "</i></p>";
                         case "stanza":
                             parentTag = nameTag;
                             break;
@@ -694,7 +697,7 @@ public class MainActivity extends AppCompatActivity {
                             parentTag = nameTag;
                             break;
                         case "empty-line":
-                            tagOpen = "<br/>";
+                            tagOpen = "<br />";
                             tagClose = "";
                             break;
                         case "binary": // пропускаем т.к. это картинки, уже пропарсены и находятся в памяти
