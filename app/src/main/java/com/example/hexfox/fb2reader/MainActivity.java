@@ -13,8 +13,10 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.Html;
+import android.text.Layout;
 import android.text.SpannableStringBuilder;
+import android.text.StaticLayout;
+import android.text.TextPaint;
 import android.util.Log;
 import android.util.Xml;
 import android.view.Menu;
@@ -60,7 +62,6 @@ public class MainActivity extends AppCompatActivity {
 
     ViewPager pager;
     ArrayList<EntryPage> pagesBook;
-    TextView tvPage;
     MyFragmentPagerAdapter pagerAdapter;
     int curNumPage;
 
@@ -91,6 +92,7 @@ public class MainActivity extends AppCompatActivity {
 
     final char IMAGE = 'I';
     final char TEXT = 'T';
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -213,13 +215,13 @@ public class MainActivity extends AppCompatActivity {
                         public void onClick(DialogInterface dialog, int which) {
                             // user clicked OK
                             if(currentPage != null)
-                                currentPage.setSizeFont(Float.parseFloat(sizesFonts[checkedItemSizeFont]));
+                                currentPage.setSizeFont(Integer.parseInt(sizesFonts[checkedItemSizeFont]));
                             if(nextPage != null)
-                                nextPage.setSizeFont(Float.parseFloat(sizesFonts[checkedItemSizeFont]));
+                                nextPage.setSizeFont(Integer.parseInt(sizesFonts[checkedItemSizeFont]));
                             if(prevPage != null)
-                                prevPage.setSizeFont(Float.parseFloat(sizesFonts[checkedItemSizeFont]));
+                                prevPage.setSizeFont(Integer.parseInt(sizesFonts[checkedItemSizeFont]));
                             if(prevPrevPage != null)
-                                prevPrevPage.setSizeFont(Float.parseFloat(sizesFonts[checkedItemSizeFont]));
+                                prevPrevPage.setSizeFont(Integer.parseInt(sizesFonts[checkedItemSizeFont]));
                             dialog.dismiss();
                         }
                     });
@@ -344,7 +346,6 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
 
-
                     pagesBook = new ArrayList<>();
                     try {
                         // парсим xml файл в список объектов Student
@@ -398,6 +399,7 @@ public class MainActivity extends AppCompatActivity {
         final int RIGHT = 2;
         int direct;
         int directChanged;
+        //StringBuffer allPages;
 
         public MyFragmentPagerAdapter(FragmentManager fm, ArrayList<EntryPage> allPages) {
             super(fm);
@@ -407,7 +409,6 @@ public class MainActivity extends AppCompatActivity {
             direct = RIGHT;
             directChanged = RIGHT;
         }
-
         @Override
         public Fragment getItem(int position) {
 
@@ -560,11 +561,10 @@ public class MainActivity extends AppCompatActivity {
         EntryPage entryPage = new EntryPage();
         SpannableStringBuilder stringPage = new SpannableStringBuilder();
         SpannableStringBuilder pieceTextFromPrevPage = new SpannableStringBuilder();
-        boolean toNewStrFlag = false;
+        //boolean toNewStrFlag = false;
         final int MAX_LEN_PAGE = 800;
         String imageString;
         int numCallEndTag = 0;
-
 
         // Отдельный парсинг раздела описания <description>
         boolean notEnd = true;
@@ -573,7 +573,7 @@ public class MainActivity extends AppCompatActivity {
                 case XmlPullParser.START_DOCUMENT:
                     break;
                 case XmlPullParser.START_TAG:
-                    String value;
+                    String nameImage;
                     String nameTag = parser.getName();
                     switch (nameTag) {
                         case "annotation":
@@ -581,18 +581,20 @@ public class MainActivity extends AppCompatActivity {
                             break;
                         case "p":
                             if(parentTag.equals("annotation")) {
-                                tagOpen = "<p align=\"center\"><i>";
+                                tagOpen = "<p align=\"right\"><i>";
                                 tagClose = "</i></p>";
                             }
                             break;
                         case "image":
                             String tmp = parser.getAttributeValue(null, "l:href");
-                            value = tmp.replace("#", "");
+                            nameImage = tmp.replace("#", "");
                             if (binaries != null)
-                                if (binaries.containsKey(value)) {
-                                    imageString = binaries.get(value);
+                                if (binaries.containsKey(nameImage)) {
+                                    imageString = binaries.get(nameImage);
                                     EntryPage _entryPage = new EntryPage();
-                                    _entryPage.set(IMAGE, imageString);
+                                    _entryPage.set(IMAGE,
+                                            "<img id=\"" + nameImage +
+                                                    "\" src=\"data:image/jpeg;base64," + imageString + "\" />");
                                     pagesBook.add(_entryPage);
                                     //Log.d(TAG, valImage);
                                 }
@@ -619,7 +621,7 @@ public class MainActivity extends AppCompatActivity {
                 case XmlPullParser.TEXT:
                     if(parentTag.equals("annotation")) {
                         SpannableStringBuilder str = new SpannableStringBuilder();
-                        str.append(Html.fromHtml(tagOpen + parser.getText() + tagClose));
+                        str.append((tagOpen + parser.getText() + tagClose));
                         EntryPage ep = new EntryPage();
                         ep.set(TEXT, str);
                         pagesBook.add(ep);
@@ -638,28 +640,28 @@ public class MainActivity extends AppCompatActivity {
                 // открывайющий тэг
                 case XmlPullParser.START_TAG:
                     //Log.d(TAG, "START_TAG: " + parser.getName());
-                    String value;
+                    String nameImage;
                     String nameTag = parser.getName();
                     switch (nameTag) {
                         case "p":
                             if(parentTag.equals("title")) {
-                                tagOpen = "<br /><h2>";
-                                tagClose = "</2>";
+                                tagOpen = "<h2>";
+                                tagClose = "</h2>";
                             }else if(parentTag.equals("annotation")) {
-                                tagOpen = "<p align=\"center\"><i>";
+                                tagOpen = "<p align=\"justify\"><i>";
                                 tagClose = "</i></p>";
                             }else if(parentTag.equals("epigraph")){
-                                tagOpen = "<p align=\"right\"><i>";
+                                tagOpen = "<p align=\"justify\"><i>";
                                 tagClose = "</i></p>";
                             }else{
-                                tagOpen = "<span>";
-                                tagClose = "</span><br/>";
+                                tagOpen = "<div style=\"text-align: justify; text-indent: 20px\">";
+                                tagClose = "</div>";
                             }
                             break;
                         case "v":
                             if(parentTag.equals("stanza")){
-                                tagOpen = "<br /><i align=\"center\">";
-                                tagClose = "</i>";
+                                tagOpen = "<i>";
+                                tagClose = "</i><br />";
                             }
                             break;
                         case "emphasis":
@@ -672,7 +674,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                             break;
                         case "subtitle":
-                            tagOpen = "<br /><h4>";
+                            tagOpen = "<h4>";
                             tagClose = "</4>";
                             break;
                         case "text-author":
@@ -697,19 +699,20 @@ public class MainActivity extends AppCompatActivity {
                             parentTag = nameTag;
                             break;
                         case "empty-line":
-                            tagOpen = "<br />";
-                            tagClose = "";
+                            tagClose = tagClose + "<br />";
                             break;
                         case "binary": // пропускаем т.к. это картинки, уже пропарсены и находятся в памяти
                             return;
                         case "image":
                             String tmp = parser.getAttributeValue(null, "l:href");
-                            value = tmp.replace("#", "");
+                            nameImage = tmp.replace("#", "");
                             if (binaries != null)
-                                if (binaries.containsKey(value)) {
-                                    imageString = binaries.get(value);
+                                if (binaries.containsKey(nameImage)) {
+                                    imageString = binaries.get(nameImage);
                                     EntryPage _entryPage = new EntryPage();
-                                    _entryPage.set(IMAGE, imageString);
+                                    _entryPage.set(IMAGE,
+                                            "<img id=\"" + nameImage +
+                                            "\" src=\"data:image/jpeg;base64," + imageString + "\" />");
                                     pagesBook.add(_entryPage);
                                     //Log.d(TAG, valImage);
                                 }
@@ -733,17 +736,18 @@ public class MainActivity extends AppCompatActivity {
 
                     if(!parser.getText().isEmpty()){
                         //Log.d(TAG, tagOpen + parser.getText() + tagClose);
-
+                        /*
                         // Делим текст по страницам по MAX_LEN_PAGE симвовлов
                         if(toNewStrFlag) {
-                            stringPage.append(Html.fromHtml(pieceTextFromPrevPage
+                            stringPage.append((pieceTextFromPrevPage
                                     + tagOpen + parser.getText() + tagClose));
                             toNewStrFlag = false;
-                        }else {
-                            stringPage.append(Html.fromHtml(tagOpen + parser.getText() + tagClose));
-                        }
+                        }else {*/
+                            stringPage.append(tagOpen + parser.getText() + tagClose);
+                        //}
 
                         if(stringPage.length() >= MAX_LEN_PAGE) {
+                            /*
                             if(stringPage.length() > MAX_LEN_PAGE) {
 
                                 // Если попали на слово, то переносим его на след. страницу
@@ -759,7 +763,7 @@ public class MainActivity extends AppCompatActivity {
 
                                 toNewStrFlag = true;
                             }
-
+                            */
                             entryPage.set(TEXT, stringPage);
                             pagesBook.add(entryPage);
                             stringPage = new SpannableStringBuilder();
@@ -780,7 +784,6 @@ public class MainActivity extends AppCompatActivity {
             //if(pagesBook.size() == 5)
               //  break;
         }
-
     }
 
     class EntryPage {

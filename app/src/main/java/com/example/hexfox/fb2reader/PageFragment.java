@@ -1,24 +1,19 @@
 package com.example.hexfox.fb2reader;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.graphics.Typeface;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
-import android.text.method.ScrollingMovementMethod;
-import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageButton;
-import android.widget.TextView;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebView;
+import android.widget.Toast;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 
 public class PageFragment extends Fragment {
     static final String ARGUMENT_PAGE_NUMBER = "arg_page_number";
@@ -29,39 +24,79 @@ public class PageFragment extends Fragment {
     int pageNumber;
     int backColor;
     CharSequence pageText;
-    TextView tvPage;
+    WebView wvPage;
     ViewPager pager;
     static String fontPath;
-    static float sizeFont;
-    static float lineSpace;
-    static boolean selectedSizeFont = false;
-    static boolean selectedLineSpace = false;
+    static int sizeFont = 14;
+    static float lineSpace = 1.5f;
     char typeData = TEXT;
-    float defaultSizeFont = 14.0f;
+    int width;
+    int height;
 
-    public void setFontPage(String font){
-        if (font != null) {
-            try {
-                tvPage.setTypeface(Typeface.createFromAsset(
-                        getActivity().getAssets(), font));
-                fontPath = font;
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+    final class IJavascriptHandler {
+        IJavascriptHandler() {
+        }
+
+        @JavascriptInterface
+        public void setSizeImage(String widthImage, String heightImage) {
+            width = Integer.valueOf(widthImage);
+            height = Integer.valueOf(heightImage);
+            Toast.makeText(getActivity().getApplicationContext(),
+                    "size: "+widthImage+ " " +heightImage, Toast.LENGTH_SHORT).show();
         }
     }
 
-    public void setSizeFont(float size){
-        tvPage.setTextSize(size);
-        sizeFont = size;
-        selectedSizeFont = true;
+    void setHtmlStylePage(CharSequence pageText, String fontPath, int sizeFont, float lineSpace){
 
+        String scriptTag = "";
+        String idImage = "";
+        //Находим id картинки и меняем ее размер при необходимости
+        if(typeData == IMAGE) {
+            String regex = "^<img\\s*id=[\\\"](\\w*\\.*\\w*)";
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(pageText);
+            if(matcher.find())
+                idImage = matcher.group(1);
+            scriptTag = "<script>function androidResponse(){" +
+                        "var img = document.getElementById(\""+idImage+"\");" +
+                        "var width = img.clientWidth;" +
+                        "var height = img.clientHeight;" +
+                        "if(img && img.style) {" +
+                        "if(width > 320){img.style.width = '320px';}" +
+                        "if(height > 445){img.style.height = '445px';}}" +
+                        "AndroidFunction.setSizeImage(width, height);}</script>";
+        }
+
+        String startTag = "<html><head><style type=\"text/css\">" +
+                        "@font-face {font-family: my_font;src: url('"+fontPath+"');}" +
+                        "body {font-family: my_font; text-align: justify; " +
+                        "font-size: "+sizeFont+"px; line-height: "+lineSpace+";}</style>" +
+                        "</head><body onLoad=\"javascript:return androidResponse();\">";
+
+        String closeTag = "</body></html>";
+        String myHtmlString = startTag + scriptTag + pageText + closeTag;
+        wvPage.loadDataWithBaseURL("file:///android_asset/", myHtmlString,
+                "text/html", "utf-8", null);
+        wvPage.addJavascriptInterface(new IJavascriptHandler(), "AndroidFunction");
+        //wvPage.loadUrl("javascript:androidResponse();void(0);");
+    }
+
+    public void setFontPage(String font){
+        if (font != null) {
+            fontPath = font;
+            setHtmlStylePage(pageText, fontPath, sizeFont, lineSpace);
+        }
+    }
+
+    public void setSizeFont(int size){
+        sizeFont = size;
+        setHtmlStylePage(pageText, fontPath, sizeFont, lineSpace);
+        //wvPage.getSettings().setTextZoom(wvPage.getSettings().getTextZoom() + 10);
     }
 
     public void setLineSpace(float space){
-        tvPage.setLineSpacing(0, space);
         lineSpace = space;
-        selectedLineSpace = true;
+        setHtmlStylePage(pageText, fontPath, sizeFont, lineSpace);
     }
 
     static PageFragment newInstance(int page, CharSequence text, char typeData) {
@@ -87,61 +122,18 @@ public class PageFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment, null);
-        tvPage = view.findViewById(R.id.tvPage);
+        wvPage = view.findViewById(R.id.wvPage);
         pager = getActivity().findViewById(R.id.pager);
-
-        //TextViewCompat.setAutoSizeTextTypeWithDefaults(tvPage, TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM);
-
-        tvPage.setBackgroundColor(backColor);
-        tvPage.setMovementMethod(new ScrollingMovementMethod());
-
-       if(typeData == IMAGE) {
-           InputStream stream = new ByteArrayInputStream(Base64.decode(pageText.toString().getBytes(), Base64.DEFAULT));
-           Bitmap bitmap = BitmapFactory.decodeStream(stream); //decode stream to a bitmap image
-           Drawable topImage = new BitmapDrawable(getResources(), bitmap);
-           tvPage.setCompoundDrawablesWithIntrinsicBounds(null, topImage, null, null);
-       } else {
-           tvPage.setText(pageText);
-
-           if (fontPath != null)
-               tvPage.setTypeface(Typeface.createFromAsset(
-                       getActivity().getAssets(), fontPath));
-           if (selectedSizeFont)
-               tvPage.setTextSize(sizeFont);
-           else
-               tvPage.setTextSize(defaultSizeFont);
-
-           if (selectedLineSpace)
-               tvPage.setLineSpacing(0, lineSpace);
-       }
-        tvPage.setVisibility(View.VISIBLE);
+        wvPage.setBackgroundColor(backColor);
+        wvPage.getSettings().setBuiltInZoomControls(true);
+        wvPage.getSettings().setDisplayZoomControls(false);
+        wvPage.getSettings().setJavaScriptEnabled(true);  // включили JavaScript
+        wvPage.getSettings().setDomStorageEnabled(true);  // включили localStorage и т.п.
+        wvPage.getSettings().setSupportZoom(false);
+        wvPage.setVisibility(View.VISIBLE);
         pager.setVisibility(View.VISIBLE);
-
-        // Кнопка возврата к списку файлов
-        final ImageButton btnBack = view.findViewById(R.id.btnBack);
-        btnBack.setVisibility(View.INVISIBLE);
-
-        View.OnClickListener ocl = new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                switch (view.getId()) {
-                    case R.id.btnBack:
-                        //do something
-                        break;
-                    case R.id.tvPage:
-                        if(btnBack.getVisibility() == View.INVISIBLE) {
-                            btnBack.setVisibility(View.VISIBLE);
-                        }else{
-                            btnBack.setVisibility(View.INVISIBLE);
-                        }
-                        break;
-                }
-            }
-        };
-        btnBack.setOnClickListener(ocl);
-        tvPage.setOnClickListener(ocl);
+        setHtmlStylePage(pageText, fontPath, sizeFont, lineSpace);
 
         return view;
     }
-
 }
