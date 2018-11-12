@@ -436,13 +436,11 @@ public class MainActivity extends AppCompatActivity {
                 currentPage = PageFragment.newInstance(position,
                         allPages.get(position).getData(), allPages.get(position).getTypeData());
                 nextPage = currentPage;
-                //nextPage.setFontPage(fontPath);
                 step = 1;
             }
             else if(step == 1){
                 nextPage = PageFragment.newInstance(position,
                         allPages.get(position).getData(), allPages.get(position).getTypeData());
-                //nextPage.setFontPage(fontPath);
                 step = 2;
             }
             else if(step == 2){
@@ -450,14 +448,12 @@ public class MainActivity extends AppCompatActivity {
                 currentPage = nextPage;
                 nextPage = PageFragment.newInstance(position,
                         allPages.get(position).getData(), allPages.get(position).getTypeData());
-                //nextPage.setFontPage(fontPath);
             }
             else if(step == 3){
                 prevPrevPage = currentPage;
                 currentPage = prevPage;
                 nextPage = PageFragment.newInstance(position,
                         allPages.get(position).getData(), allPages.get(position).getTypeData());
-                //nextPage.setFontPage(fontPath);
                 step = 2;
             }
 
@@ -821,4 +817,3 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 }
-
